@@ -31,14 +31,12 @@ int main (int argc, char *argv[]){
 
   glClearColor(0,0,0,1);
 
-
-
   //temp data
   GLfloat vertices [] = {
-    -1,0,0,
-    1,0,0,
+    -1,-1,0,
+    1,-1,0,
     0,1,0,
-    0.5,0.5,1
+    0,0,1
   };
 
   GLuint indices [] = {
