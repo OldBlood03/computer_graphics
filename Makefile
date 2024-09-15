@@ -3,7 +3,7 @@ CODEDIRS= . ./src
 INCDIRS= . /usr/include/GL
 
 FLAGS=-Wall $(foreach D, $(INCDIRS), -I$D) -g
-LIBFLAGS=-lGL -lGLEW -lglut
+LIBFLAGS=-lGL -lGLEW -lglut -lm
 FILES=$(foreach D, $(CODEDIRS), $(wildcard $D/*.c))
 BINARY=bin
 OBJ=$(patsubst %.c,%.o,$(FILES))
