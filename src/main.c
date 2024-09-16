@@ -31,26 +31,23 @@ int main (int argc, char *argv[]){
 
   glClearColor(0,0,0,1);
 
-  //temp data
-  GLfloat vertices [] = {
-    -1,-1,0,
-    1,-1,0,
-    0,1,0,
-    0,0,1
-  };
+  GLfloat *vertices;
+  GLuint *indices;
+  unsigned long nvertices, nindices;
+  const char * asset_path = "assets/bunny.obj";
 
-  GLuint indices [] = {
-    0,1,2,
-    0,1,3,
-    1,2,3,
-    0,2,3
-  };
+  //NOTE: ReadOBJ assumes that there are exactly 3 values per vertex and per face
+  ReadOBJFile(asset_path, &vertices, &indices, &nvertices, &nindices);
 
   CreateProgram();
-  CreateMesh(vertices, sizeof(vertices), indices, sizeof(indices));
+  CreateMesh(vertices, 3*nvertices, indices, 3*nindices);
 
   glutIdleFunc(Draw);
   glutMainLoop();
+
+  free(vertices);
+  free(indices);
+
   return 0;
 }
 

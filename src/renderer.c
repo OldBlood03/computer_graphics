@@ -68,6 +68,7 @@ void Draw() {
   float increment = 0.005;
   time += increment;
   glUniform1f(uniform, time);
+
   glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   glClear(GL_COLOR_BUFFER_BIT);
   CHECK(glBindVertexArray(vao));

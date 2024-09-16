@@ -1,3 +1,4 @@
+#include <glew.h>
 #ifndef FILEREADER
 #define FILEREADER
 typedef enum ShaderMode {
@@ -8,4 +9,5 @@ typedef enum ShaderMode {
 
 int CheckLineForMode (const char *line, ShaderMode *mode);
 void ReadShaderFile (const char *path, char *vertex_str, char *fragment_str);
+void ReadOBJFile (const char *path, GLfloat **vertices, GLuint **indices, unsigned long *nvertices, unsigned long *nindices);
 #endif
