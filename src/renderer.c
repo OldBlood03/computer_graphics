@@ -1,13 +1,15 @@
 #include<stdio.h>
 #include<math.h>
+#include<assert.h>
 
 #include<include/renderer.h>
 #include<include/file_reader.h>
 #include<include/shader_compiler.h>
 
+static GLuint program;
 static GLuint vao;
 static GLsizei nelements;
-static GLint uniform;
+static UniformStack *uniforms = NULL;
 
 void glClearError(){
   while(glGetError()){}
@@ -19,7 +21,6 @@ void glCheckError(const char *function_name, const char *file, int line){
     fprintf (stderr, "ERROR LINE %u: triggered by function %s\nfile:%s\ncode: %u", line, function_name, file, flag);
   }
 }
-
 
 void CreateBuffers(){
   CHECK(glGenVertexArrays(1,&vao));
@@ -58,17 +59,36 @@ void CreateProgram (){
   const char *shader_file_path = "shaders/shader";
 
   ReadShaderFile(shader_file_path, vertex_str, fragment_str);
-  GLuint program_id = CreateShader(vertex_str, fragment_str);
-  glUseProgram(program_id);
-  uniform = glGetUniformLocation(program_id, "time");
+  program = CreateShader(vertex_str, fragment_str);
+  glUseProgram(program);
+}
+void PushUniform(const char *name, void (*callback)(GLint)){
+  GLint id = glGetUniformLocation(program, name);
+  UniformStack *uniform = (UniformStack *)(malloc(sizeof(UniformStack)));
+  uniform -> id = id;
+  uniform -> previous = uniforms;
+  uniform -> callback = callback;
+  uniforms = uniform;
+}
+
+int PopUniform () {
+  if (!uniforms) return 0;
+  UniformStack *current = uniforms;
+  uniforms = current -> previous;
+  free(current);
+  return 1;
+}
+
+static void UpdateUniforms(){
+  UniformStack *current = uniforms;
+  while (current){
+    (*(current -> callback))(current->id);
+    current = current->previous;
+  }
 }
 
 void Draw() {
-  static float time = 0.0;
-  float increment = 0.005;
-  time += increment;
-  glUniform1f(uniform, time);
-
+  UpdateUniforms();
   glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   glClear(GL_COLOR_BUFFER_BIT);
   CHECK(glBindVertexArray(vao));

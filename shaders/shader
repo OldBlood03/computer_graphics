@@ -15,7 +15,7 @@ mat4 rotationy = mat4(cos(time),0, sin(time), 0,
                      -sin(time),0,cos(time), 0,
                      0, 0, 0,1);
 void main(){
-  gl_Position = rotationy*rotationx*vec4(4*position, 1);
+  gl_Position = rotationy*rotationx*vec4(0.5*position, 1);
 }
 
 #shader fragment
