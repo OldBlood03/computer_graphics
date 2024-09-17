@@ -3,7 +3,10 @@
 #include<string.h>
 #include<stdlib.h>
 #include<assert.h>
+
 #include<include/file_reader.h>
+
+#define MAX_LINE_SIZE 255
 
 int CheckLineForMode (const char *line, ShaderMode *mode){
   if (strstr(line,"vertex")){
@@ -30,8 +33,7 @@ void ReadShaderFile (const char *path, char *vertex_str, char *fragment_str){
 
   ShaderMode mode = NONE;
 
-  unsigned int line_size = 255;
-  char line[line_size];
+  char line[MAX_LINE_SIZE];
 
   while (fgets(line, sizeof(line), fptr)){
 
@@ -40,12 +42,12 @@ void ReadShaderFile (const char *path, char *vertex_str, char *fragment_str){
     }
 
     if (mode == VERTEX) {
-      strncat(vertex_str, line, line_size);
+      strncat(vertex_str, line, MAX_LINE_SIZE);
       continue;
     }
 
     if (mode == FRAGMENT) {
-      strncat(fragment_str, line, line_size);
+      strncat(fragment_str, line, MAX_LINE_SIZE);
       continue;
     }
     assert(!"ERROR: no #shader specifier in shader file \n");
@@ -54,105 +56,143 @@ void ReadShaderFile (const char *path, char *vertex_str, char *fragment_str){
   fclose(fptr); 
 }
 
-static void AllocateSpaceForOBJ(FILE* fptr, GLfloat **vertices, GLuint **indices, unsigned long *nvertices, unsigned long *nindices){
-  unsigned int line_size = 255;
-  char line[line_size]; 
+//obj files only include the following data
+//v,vn,vt 
+//f(face)/texture coords/normal
+// you can join lines with line continuation character 
+//you can NOT use negative indices even though the specification allows for them I will not
+//groups are ignored
 
-  while (fgets(line, sizeof(line), fptr) && strstr(line, "#")){
-    if(strstr(line, "vertex")){
-      char *p = line;
-      char *digits = NULL;
-
-      //while not null term char
-      while(*p){
-        if (isdigit(*p) && !digits){
-          digits = p;
-        }
-        else if (!isdigit(*p)) *p = '\0';
-        p++;
-      }
-
-      if (!digits){
-        fprintf(stderr, "OBJ ERROR: vertex line did not contain digits");
-        continue;
-      }
-
-      int num_vertices = strtoul(digits, NULL, 10);
-
-      if (num_vertices == 0){
-        fprintf(stderr, "atoi returned bad value when reading obj file");
-      }
-
-      *nvertices = num_vertices;
-      *vertices = (GLfloat *) (malloc(3*sizeof(GLfloat)*num_vertices));
+static void PreprocessOBJFile(FILE *fptr,unsigned long *nvertices, unsigned long *nnormals, unsigned long *ntext, unsigned long *nfaces){
+  char line[MAX_LINE_SIZE]; 
+  while (fgets(line, sizeof(line), fptr)){
+    if (!strncmp (line, "vt", 2)){
+      (*ntext)++;
     }
-
-    if(strstr(line, "face")){
-      char *p = line;
-      char *digits = NULL;
-
-      //while not null term char
-      while(*p){
-        if (isdigit(*p) && !digits){
-          digits = p;
-        }
-        else if (!isdigit(*p)) *p = '\0';
-        p++;
-      }
-
-      if (!digits){
-        fprintf(stderr, "OBJ ERROR: face line did not contain digits");
-        continue;
-      }
-
-      int num_indices = strtoul(digits,NULL, 10);
-
-      if (num_indices == 0){
-        fprintf(stderr, "atoi returned bad value when reading obj file");
-      }
-
-      *nindices = num_indices;
-      *indices = (GLuint *) (malloc(3*sizeof(GLuint)*num_indices));
+    else if (!strncmp (line, "vn", 2)){
+      (*nnormals)++;
+    }
+    else if (*line == 'v'){
+      (*nvertices)++;
+    }
+    else if (*line == 'f'){
+      (*nfaces)++;
     }
   }
-  //have to set file pointer back to the start of the line without # after fgets moved the fp
-  size_t length = strlen(line);
-  fseek(fptr, -length, SEEK_CUR);
+  rewind(fptr);
 }
 
-//caller responsible for freeing memory
-//NOTE: ReadOBJ is very janky and assumes the file has exactly 3 coordinates per vertex and 3 indices per face
-void ReadOBJFile (const char *path, GLfloat **vertices, GLuint **indices, unsigned long *nvertices,unsigned long *nindices){
+static unsigned int vi = 0, vni = 0, vti = 0, fi = 0;
+static void ProcessLine( char * line,
+    GLfloat **vertices,
+    GLfloat **normals,
+    GLfloat **textures,
+    GLuint **indices,
+    GLuint **texture_indices,
+    GLuint **normal_indices ){
+
+  if (!strncmp (line, "vt", 2)){
+    char *token;
+    token = strtok(line, "\n vt");
+    (*normals)[vti] = atof(token);
+    vti++;
+
+    while((token = strtok(NULL, "\n vt"))){
+      (*vertices)[vti] = atof(token);
+      vti++;
+    }
+  }
+
+  else if (!strncmp (line, "vn", 2)){
+    char *token;
+
+    token = strtok(line, "\n vn");
+    (*normals)[vni] = atof(token);
+    vni++;
+
+    while((token = strtok(NULL, "\n vn"))){
+      (*vertices)[vni] = atof(token);
+      vni++;
+    }
+  }
+
+  else if (*line == 'v'){
+    char *token;
+
+    token = strtok(line, "\n v");
+    (*vertices)[vi] = atof(token);
+    vi++;
+
+    while((token = strtok(NULL, "\n v"))){
+      (*vertices)[vi] = atof(token);
+      vi++;
+    }
+  }
+
+  else if (*line == 'f'){
+    char *token;
+    char *delim;
+    token = strtok(line, "\n f");
+    (*indices)[fi] = strtoul(token, &delim, 10) -1;
+
+    if (*delim == '/' && delim[1] != '/'){
+      (*texture_indices)[fi] = strtoul(delim +1, &delim, 10)-1;
+    }
+    if (*delim == '/'){
+      (*normal_indices)[fi] = strtoul(delim +1, &delim, 10)-1;
+    }
+
+    fi++;
+    while((token = strtok(NULL, "\n f"))){
+      (*indices)[fi] = strtoul(token, &delim, 10) - 1;
+
+      if (*delim == '/' && delim[1] != '/'){
+        (*texture_indices)[fi] = strtoul(delim +1, &delim, 10) - 1;
+      }
+      if (*delim == '/'){
+        (*normal_indices)[fi] = strtoul(delim +1, &delim, 10) - 1;
+      }
+      fi++;
+    }
+  }
+}
+
+void ReadOBJFile (const char *path, 
+    GLfloat **vertices,
+    unsigned long *nvertices,
+    GLfloat **normals, 
+    unsigned long *nnormals,
+    GLfloat **textures,
+    unsigned long *ntext,
+    GLuint **indices,
+    unsigned long *nfaces,
+    GLuint **texture_indices,
+    GLuint **normal_indices){
+
+  *nvertices = 0;
+  *nnormals = 0;
+  *ntext = 0;
+  *nfaces = 0;
+
   FILE *fptr = fopen(path, "r");
   assert (fptr && "ERROR: could not open OBJ file\n");
 
-  unsigned int line_size = 255;
-  char line[line_size]; 
+  char line[MAX_LINE_SIZE]; 
 
-  AllocateSpaceForOBJ(fptr, vertices, indices, nvertices, nindices);
+  PreprocessOBJFile(fptr, nvertices, nnormals, ntext, nfaces);
 
-  for (int i = 0; i < *nvertices; i++){
-    char *token;
-    fgets(line, sizeof(line), fptr);
+  (*vertices) = (GLfloat*)(malloc(sizeof(GLfloat) * (*nvertices)*3));
 
-    token = strtok(line, "\n v");
-    (*vertices)[i*3] = atof(token);
+  (*indices) = (GLuint*)(malloc(sizeof(GLuint) * (*nfaces)*3));
+  (*texture_indices) = (GLuint*)(malloc(sizeof(GLuint) * (*nfaces)*3));
+  (*normal_indices) = (GLuint*)(malloc(sizeof(GLuint) * (*nfaces)*3));
 
-    for(int index = 1; (token = strtok(NULL, "\n v")); index++){
-      (*vertices)[i*3 + index] = atof(token);
-    }
+  (*normals) = (GLfloat*)(malloc(sizeof(GLfloat) * (*nnormals)*3));
+  (*textures) = (GLfloat*)(malloc(sizeof(GLfloat) * (*ntext)*2));
+
+  while (fgets(line, MAX_LINE_SIZE, fptr)){
+    ProcessLine(line, vertices, normals, textures, indices, texture_indices, normal_indices);
   }
 
-  for (int i = 0; i < *nindices; i++){
-    char *token;
-    fgets(line, sizeof(line), fptr);
-
-    token = strtok(line, "\n f");
-    (*indices)[i*3] = strtoul(token, NULL, 10);
-
-    for(int index = 1; (token = strtok(NULL, "\n f")); index++){
-      (*indices)[3*i + index] = strtoul(token, NULL, 10);
-    }
-  }
   fclose(fptr); 
 }
