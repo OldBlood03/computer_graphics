@@ -82,7 +82,7 @@ void CreateProgram (){
 
 void Draw() {
   Timer();
-  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   glEnable(GL_DEPTH_TEST);
   glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
   CHECK(glBindVertexArray(vao));

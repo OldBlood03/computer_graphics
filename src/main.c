@@ -9,6 +9,7 @@
 #include<GL/freeglut.h>
 #include<math.h>
 #include<assert.h>
+#define asset_path "assets/meshes/cone.obj"
 
 
 void WindowInit(int argc, char *argv[]){
@@ -34,7 +35,6 @@ int main (int argc, char *argv[]){
   Vertex *vertices;
   GLuint *indices;
   unsigned long nvertices, nindices;
-  const char * asset_path = "assets/meshes/torus.obj";
 
   //NOTE: ReadOBJ assumes that there are exactly 3 values per vertex and per face
   ReadOBJFile(asset_path, &vertices, &nvertices, &indices, &nindices);
@@ -43,7 +43,7 @@ int main (int argc, char *argv[]){
   CreateMesh(vertices, 3*nvertices, indices, 3*nindices);
 
   //glut callbacks
-  glutPassiveMotionFunc(MotionFunc);
+  glutMotionFunc(MotionFunc);
   glutIdleFunc(Draw);
   glutMainLoop();
 

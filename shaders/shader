@@ -12,24 +12,39 @@ float x = direction.x * rotscale;
 float y = direction.y * rotscale;
 
 mat4 rotx (float angle) {
-  return mat4(cos(time),-sin(time),0,0, sin(time), cos(time), 0,0, 0,0,1,0, 0,0,0,1);
+  return mat4(cos(angle),-sin(angle),0,0, sin(angle), cos(angle), 0,0, 0,0,1,0, 0,0,0,1);
 }
 mat4 roty (float angle) {
-  return mat4(cos(time),0, sin(time),0, 0, 1, 0,0, -sin(time),0,cos(time),0, 0, 0, 0,1);
+  return mat4(cos(angle),0, sin(angle),0, 0, 1, 0,0, -sin(angle),0,cos(angle),0, 0, 0, 0,1);
+}
+
+float fov = 10; 
+float aspect = 1;
+float near = -1; 
+float far = 1; 
+
+mat4 proj(float fov, float aspect, float near, float far) {
+    float tanHalfFov = tan(fov / 2.0);
+    return mat4(
+        1.0 / (aspect * tanHalfFov), 0.0, 0.0, 0.0,
+        0.0, 1.0 / tanHalfFov, 0.0, 0.0,
+        0.0, 0.0, -(far + near) / (far - near), -1.0,
+        0.0, 0.0, -(2.0 * far * near) / (far - near), 0.0
+    );
 }
 
 out vec4 aColor;
 
 void main(){
-  mat4 nrotx = transpose(rotx(-time));
-  mat4 nroty = transpose(roty(-time));
+  mat4 nrotx = transpose(rotx(-x));
+  mat4 nroty = transpose(roty(-y));
 
   vec4 light = vec4(1,1,1, 0);
-  vec4 tnorm = nrotx*nroty*vec4(normal, 1);
+  vec4 tnorm = nrotx*nroty*vec4(-normal, 1);
   float d = dot(light, tnorm);
 
   aColor = vec4(d,d,d,1);
-  gl_Position = rotx(time)*roty(time)*vec4(position, 1);
+  gl_Position = rotx(x)*roty(y)*vec4(position, 1);
 }
 
 #shader fragment
@@ -41,5 +56,5 @@ in vec4 aColor;
 out vec4 color;
 
 void main(){
-  color = aColor;
+  color = vec4(0.5,0.0,0.5,1);
 }
