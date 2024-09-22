@@ -11,15 +11,29 @@ static GLuint vao;
 static GLsizei nelements;
 static UniformStack *uniforms = NULL;
 
-void glClearError(){
-  while(glGetError()){}
-}
 void glCheckError(const char *function_name, const char *file, int line){
   GLenum flag;
 
   while((flag = glGetError())){
     fprintf (stderr, "ERROR LINE %u: triggered by function %s\nfile:%s\ncode: %u", line, function_name, file, flag);
   }
+}
+
+void glClearError(){
+  while(glGetError()){}
+}
+
+static void Timer(){
+  static float time = 0.0;
+  float increment = 0.005;
+  time += increment;
+  GLint id = glGetUniformLocation(program, "time");
+  glUniform1f(id, time);
+}
+
+void MotionFunc(int x, int y){
+  GLint id = glGetUniformLocation(program, "direction");
+  glUniform2f(id,(float)x,(float)y);
 }
 
 void CreateBuffers(){
@@ -35,15 +49,18 @@ void CreateBuffers(){
   CHECK(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
 
   CHECK(glEnableVertexAttribArray(0));
+  CHECK(glEnableVertexAttribArray(1));
   //params: (index of attrib, how many components in attribute, type of components, normalize?, stride
   //offset of vertex[for some reason a pointer but insert an int])
-  CHECK(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0));
+  CHECK(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0));
+  CHECK(glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)(3*sizeof(GLfloat))));
 }
 
-void CreateMesh(GLfloat* vertices, unsigned int nverts, GLuint *indices, unsigned int n){
+void CreateMesh(Vertex* vertices, unsigned int nverts, GLuint *indices, unsigned int n){
+  //with glutTimerFunc you can send n directly to draw without global variable
   nelements = n;
   CreateBuffers();
-  CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * nverts, vertices, GL_STATIC_DRAW));
+  CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * nverts, vertices, GL_STATIC_DRAW));
   CHECK(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLfloat) * n, indices, GL_STATIC_DRAW));
 
   CHECK(glBindVertexArray(0));
@@ -62,35 +79,12 @@ void CreateProgram (){
   program = CreateShader(vertex_str, fragment_str);
   glUseProgram(program);
 }
-void PushUniform(const char *name, void (*callback)(GLint)){
-  GLint id = glGetUniformLocation(program, name);
-  UniformStack *uniform = (UniformStack *)(malloc(sizeof(UniformStack)));
-  uniform -> id = id;
-  uniform -> previous = uniforms;
-  uniform -> callback = callback;
-  uniforms = uniform;
-}
-
-int PopUniform () {
-  if (!uniforms) return 0;
-  UniformStack *current = uniforms;
-  uniforms = current -> previous;
-  free(current);
-  return 1;
-}
-
-static void UpdateUniforms(){
-  UniformStack *current = uniforms;
-  while (current){
-    (*(current -> callback))(current->id);
-    current = current->previous;
-  }
-}
 
 void Draw() {
-  UpdateUniforms();
-  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-  glClear(GL_COLOR_BUFFER_BIT);
+  Timer();
+  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+  glEnable(GL_DEPTH_TEST);
+  glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
   CHECK(glBindVertexArray(vao));
   CHECK(glDrawElements(GL_TRIANGLES, nelements,GL_UNSIGNED_INT, NULL));
   glFlush();

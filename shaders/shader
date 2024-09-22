@@ -2,20 +2,34 @@
 #version 450 core
 
 layout(location= 0) in vec3 position;
+layout(location= 1) in vec3 normal;
 
 uniform float time;
+uniform vec2 direction;
 
-mat4 rotationx = mat4(cos(time),-sin(time),0, 0,
-                     sin(time), cos(time), 0, 0,
-                     0,0,1, 0,
-                     0, 0, 0,1);
+float rotscale = 0.01;
+float x = direction.x * rotscale;
+float y = direction.y * rotscale;
 
-mat4 rotationy = mat4(cos(time),0, sin(time), 0,
-                     0, 1, 0, 0,
-                     -sin(time),0,cos(time), 0,
-                     0, 0, 0,1);
+mat4 rotx (float angle) {
+  return mat4(cos(time),-sin(time),0,0, sin(time), cos(time), 0,0, 0,0,1,0, 0,0,0,1);
+}
+mat4 roty (float angle) {
+  return mat4(cos(time),0, sin(time),0, 0, 1, 0,0, -sin(time),0,cos(time),0, 0, 0, 0,1);
+}
+
+out vec4 aColor;
+
 void main(){
-  gl_Position = rotationy*rotationx*vec4(0.5*position, 1);
+  mat4 nrotx = transpose(rotx(-time));
+  mat4 nroty = transpose(roty(-time));
+
+  vec4 light = vec4(1,1,1, 0);
+  vec4 tnorm = nrotx*nroty*vec4(normal, 1);
+  float d = dot(light, tnorm);
+
+  aColor = vec4(d,d,d,1);
+  gl_Position = rotx(time)*roty(time)*vec4(position, 1);
 }
 
 #shader fragment
@@ -23,8 +37,9 @@ void main(){
 
 precision mediump float;
 
+in vec4 aColor;
 out vec4 color;
 
 void main(){
-  color = vec4(0.5,0.0,0.5,1.0);
+  color = aColor;
 }

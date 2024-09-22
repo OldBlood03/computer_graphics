@@ -11,14 +11,9 @@ typedef enum ShaderMode {
 int CheckLineForMode (const char *line, ShaderMode *mode);
 void ReadShaderFile (const char *path, char *vertex_str, char *fragment_str);
 void ReadOBJFile (const char *path, 
-    GLfloat **vertices,
+    Vertex **vertices,
     unsigned long *nvertices,
-    GLfloat **normals, 
-    unsigned long *nnormals,
-    GLfloat **textures,
-    unsigned long *ntext,
     GLuint **indices,
-    unsigned long *nfaces,
-    GLuint **texture_indices,
-    GLuint **normal_indices);
+    unsigned long *nfaces);
+    
 #endif

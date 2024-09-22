@@ -15,12 +15,18 @@ GLint id;
 void (*callback)(GLint);
 }UniformStack;
 
+typedef struct Vertex{
+GLfloat position[3];
+GLfloat normal[3];
+} Vertex;
+
+void KeyboardFunc(unsigned char key, int x, int y);
 int CheckBufferBinding ();
 void UnbindAll ();
 void CreateBuffers();
-void CreateMesh(GLfloat* vertices, unsigned int nverts, GLuint *indices, unsigned int nelements);
+void CreateMesh(Vertex* vertices, unsigned int nverts, GLuint *indices, unsigned int nelements);
 void Draw();
 void CreateProgram();
-void PushUniform(const char *name, void (*callback)(GLint));
 int PopUniform();
+void MotionFunc(int,int);
 #endif

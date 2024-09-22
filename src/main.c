@@ -21,13 +21,6 @@ void WindowInit(int argc, char *argv[]){
   glutCreateWindow("main");
 }
 
-static void TimeUniformUpdate(GLint id){
-  static float time = 0.0;
-  float increment = 0.005;
-  time += increment;
-  glUniform1f(id, time);
-}
-
 int main (int argc, char *argv[]){
   WindowInit(argc, argv);
 
@@ -38,34 +31,23 @@ int main (int argc, char *argv[]){
 
   glClearColor(0,0,0,1);
 
-  GLfloat *vertices, *normals, *textures;
-  GLuint *indices , *texture_indices, *normal_indices;
-  unsigned long nvertices, nnormals, ntextures, nindices;
+  Vertex *vertices;
+  GLuint *indices;
+  unsigned long nvertices, nindices;
   const char * asset_path = "assets/meshes/torus.obj";
 
   //NOTE: ReadOBJ assumes that there are exactly 3 values per vertex and per face
-  ReadOBJFile(asset_path,
-      &vertices,
-      &nvertices,
-      &normals,
-      &nnormals,
-      &textures,
-      &ntextures,
-      &indices,
-      &nindices,
-      &texture_indices,
-      &normal_indices);
+  ReadOBJFile(asset_path, &vertices, &nvertices, &indices, &nindices);
 
   CreateProgram();
-  PushUniform("time", TimeUniformUpdate);
   CreateMesh(vertices, 3*nvertices, indices, 3*nindices);
 
+  //glut callbacks
+  glutPassiveMotionFunc(MotionFunc);
   glutIdleFunc(Draw);
   glutMainLoop();
 
   free(vertices);
   free(indices);
-  while (PopUniform()){}
   return 0;
 }
-
