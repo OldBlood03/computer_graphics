@@ -9,7 +9,7 @@
 #include<GL/freeglut.h>
 #include<math.h>
 #include<assert.h>
-#define asset_path "assets/meshes/cone.obj"
+#define asset_path "assets/meshes/torus.obj"
 
 
 void WindowInit(int argc, char *argv[]){
